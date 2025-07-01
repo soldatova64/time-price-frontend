@@ -7,19 +7,26 @@ function getCookie(name) {
     if (parts.length === 2) return parts.pop().split(';').shift()
 }
 
+// Функция для форматирования токена (первые 5 символов + ... + последние 5 символов)
+function formatToken(token) {
+    if (!token || token.length < 10) return token
+    return `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
+}
+
 export default {
     setup() {
         const state = reactive({
             isAuthenticated: false,
             loading: false,
             error: '',
-            items: []
+            items: [],
+            token: getCookie('auth_token') || ''
         })
 
         // Проверяем авторизацию при загрузке
         onMounted(async () => {
-            const token = getCookie('auth_token')
-            if (token) {
+            if (state.token) {
+                state.isAuthenticated = true
                 await fetchHomeData()
             }
         })
@@ -37,9 +44,7 @@ export default {
                 })
 
                 if (response.status === 401) {
-                    // Удаляем куку при 401 ошибке
-                    document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-                    state.isAuthenticated = false
+                    logout()
                     return
                 }
 
@@ -58,7 +63,7 @@ export default {
             }
         }
 
-        // Функция авторизации (оставлена из предыдущей версии)
+        // Функция авторизации
         const login = async (username, password) => {
             state.error = ''
             try {
@@ -78,14 +83,14 @@ export default {
                 }
 
                 const data = await response.json()
-                const token = data.data.token
+                state.token = data.data.token
 
                 // Сохраняем токен в cookies на 1 день
                 const expires = new Date()
                 expires.setDate(expires.getDate() + 1)
-                document.cookie = `auth_token=${token}; expires=${expires.toUTCString()}; path=/`
+                document.cookie = `auth_token=${state.token}; expires=${expires.toUTCString()}; path=/`
 
-                // Загружаем данные после успешной авторизации
+                state.isAuthenticated = true
                 await fetchHomeData()
 
             } catch (err) {
@@ -94,76 +99,98 @@ export default {
             }
         }
 
+        // Функция выхода
+        const logout = () => {
+            document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+            state.isAuthenticated = false
+            state.token = ''
+            state.items = []
+        }
+
         return {
             state,
+            username: ref(''),
+            password: ref(''),
             login,
-            fetchHomeData
+            logout,
+            fetchHomeData,
+            formatToken
         }
     },
     template: `
-    <div>
-        <div v-if="state.loading" class="loading">Загрузка...</div>
-        
-        <div v-else>
-            <!-- Форма авторизации, если пользователь не аутентифицирован -->
-            <div v-if="!state.isAuthenticated" class="login-form">
-                <h2>Авторизация</h2>
-                <form @submit.prevent="login(username, password)">
-                    <div class="form-group">
-                        <label for="username">Username:</label>
-                        <input 
-                            type="text" 
-                            id="username" 
-                            v-model="username"
-                            required
-                        >
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="password">Password:</label>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            v-model="password"
-                            required
-                        >
-                    </div>
-                    
-                    <div v-if="state.error" class="error">{{ state.error }}</div>
-                    
-                    <button type="submit">Авторизоваться</button>
-                </form>
+    <div class="container">
+        <!-- Шапка с токеном и кнопкой выхода -->
+        <footer v-if="state.isAuthenticated" class="footer">
+            <div class="token-info">
+                <span>Токен: {{ formatToken(state.token) }}</span>
             </div>
+            <button @click="logout" class="logout-btn">Выйти</button>
+        </footer>
+        
+        <div class="content">
+            <div v-if="state.loading" class="loading">Загрузка...</div>
             
-            <!-- Таблица с данными, если пользователь аутентифицирован -->
-            <div v-else class="data-table">
-                <h2>Список вещей</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Название</th>
-                            <th>Дата покупки</th>
-                            <th>Цена покупки</th>
-                            <th>Дата продажи</th>
-                            <th>Цена продажи</th>
-                            <th>Дней владения</th>
-                            <th>Цена за день</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="item in state.items" :key="item.id">
-                            <td>{{ item.id }}</td>
-                            <td>{{ item.name }}</td>
-                            <td>{{ formatDate(item.pay_date) }}</td>
-                            <td>{{ item.pay_price }}</td>
-                            <td>{{ formatDate(item.sale_date) }}</td>
-                            <td>{{ item.sale_price }}</td>
-                            <td>{{ item.days }}</td>
-                            <td>{{ item.pay_day }}</td>
-                        </tr>
-                    </tbody>
-                </table>
+            <div v-else>
+                <!-- Форма авторизации, если пользователь не аутентифицирован -->
+                <div v-if="!state.isAuthenticated" class="login-form">
+                    <h2>Авторизация</h2>
+                    <form @submit.prevent="login(username, password)">
+                        <div class="form-group">
+                            <label for="username">Username:</label>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                v-model="username"
+                                required
+                            >
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="password">Password:</label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                v-model="password"
+                                required
+                            >
+                        </div>
+                        
+                        <div v-if="state.error" class="error">{{ state.error }}</div>
+                        
+                        <button type="submit">Авторизоваться</button>
+                    </form>
+                </div>
+                
+                <!-- Таблица с данными, если пользователь аутентифицирован -->
+                <div v-else class="data-table">
+                    <h2>Список вещей</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Название</th>
+                                <th>Дата покупки</th>
+                                <th>Цена покупки</th>
+                                <th>Дата продажи</th>
+                                <th>Цена продажи</th>
+                                <th>Дней владения</th>
+                                <th>Цена за день</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="item in state.items" :key="item.id">
+                                <td>{{ item.id }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ formatDate(item.pay_date) }}</td>
+                                <td>{{ item.pay_price }}</td>
+                                <td>{{ formatDate(item.sale_date) }}</td>
+                                <td>{{ item.sale_price }}</td>
+                                <td>{{ item.days }}</td>
+                                <td>{{ item.pay_day }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

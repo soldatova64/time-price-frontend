@@ -2,11 +2,56 @@ body {
     background: #1e1f22;
     color: #c6cdc9;
     font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.content {
+    flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
-    margin: 0;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+/* Футер с токеном */
+.footer {
+    background: #2b2d31;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #404249;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.token-info {
+    font-size: 0.9rem;
+    color: #c6cdc9;
+}
+
+.logout-btn {
+    background: #f04747;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+    width: 100px;
+}
+
+.logout-btn:hover {
+    background: #d83c3c;
 }
 
 .login-form {
