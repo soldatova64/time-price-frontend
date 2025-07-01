@@ -9,7 +9,7 @@ export default {
         const login = async () => {
             error.value = ''
             try {
-                const response = await fetch('/auth', {
+                const response = await fetch('/api/auth', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
