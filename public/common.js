@@ -39,7 +39,8 @@ export default {
                 const response = await fetch('/api/', {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': state.token
                     }
                 })
 
