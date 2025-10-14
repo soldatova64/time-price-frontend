@@ -20,7 +20,9 @@ export default {
             loading: false,
             error: '',
             items: [],
-            token: getCookie('auth_token') || ''
+            token: getCookie('auth_token') || '',
+            showRegisterForm: false,
+            registerSuccess: false
         })
 
         // Проверяем авторизацию при загрузке
@@ -99,6 +101,42 @@ export default {
             }
         }
 
+        // Функция регистрации
+        const register = async (username, email, password) => {
+            state.error = ''
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password
+                    })
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json()
+                    if (errorData.errors && errorData.errors.length > 0) {
+                        state.error = errorData.errors.map(err => err.message).join(', ')
+                    } else {
+                        state.error = 'Ошибка регистрации'
+                    }
+                    return
+                }
+
+                state.registerSuccess = true
+                state.showRegisterForm = false
+                state.error = ''
+
+            } catch (err) {
+                state.error = 'Ошибка сети или сервера'
+                console.error('Ошибка регистрации:', err)
+            }
+        }
+
         // Функция выхода
         const logout = () => {
             document.cookie = "auth_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
@@ -111,7 +149,11 @@ export default {
             state,
             username: ref(''),
             password: ref(''),
+            registerUsername: ref(''),
+            registerEmail: ref(''),
+            registerPassword: ref(''),
             login,
+            register,
             logout,
             fetchHomeData,
             formatToken
@@ -131,34 +173,88 @@ export default {
             <div v-if="state.loading" class="loading">Загрузка...</div>
             
             <div v-else>
-                <!-- Форма авторизации, если пользователь не аутентифицирован -->
-                <div v-if="!state.isAuthenticated" class="login-form">
-                    <h2>Авторизация</h2>
-                    <form @submit.prevent="login(username, password)">
-                        <div class="form-group">
-                            <label for="username">Username:</label>
-                            <input 
-                                type="text" 
-                                id="username" 
-                                v-model="username"
-                                required
-                            >
+                <!-- Форма авторизации/регистрации, если пользователь не аутентифицирован -->
+                <div v-if="!state.isAuthenticated" class="auth-forms">
+                    <!-- Форма авторизации -->
+                    <div v-if="!state.showRegisterForm" class="login-form">
+                        <h2>Авторизация</h2>
+                        <form @submit.prevent="login(username, password)">
+                            <div class="form-group">
+                                <label for="username">Username:</label>
+                                <input 
+                                    type="text" 
+                                    id="username" 
+                                    v-model="username"
+                                    required
+                                >
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="password">Password:</label>
+                                <input 
+                                    type="password" 
+                                    id="password" 
+                                    v-model="password"
+                                    required
+                                >
+                            </div>
+                            
+                            <div v-if="state.error" class="error">{{ state.error }}</div>
+                            <div v-if="state.registerSuccess" class="success">Регистрация прошла успешно! Теперь вы можете войти.</div>
+                            
+                            <button type="submit">Авторизоваться</button>
+                        </form>
+                        <div class="auth-switch">
+                            <p>Нет аккаунта? <a href="#" @click.prevent="state.showRegisterForm = true">Зарегистрироваться</a></p>
                         </div>
-                        
-                        <div class="form-group">
-                            <label for="password">Password:</label>
-                            <input 
-                                type="password" 
-                                id="password" 
-                                v-model="password"
-                                required
-                            >
+                    </div>
+                    
+                    <!-- Форма регистрации -->
+                    <div v-else class="register-form">
+                        <h2>Регистрация</h2>
+                        <form @submit.prevent="register(registerUsername, registerEmail, registerPassword)">
+                            <div class="form-group">
+                                <label for="registerUsername">Username:</label>
+                                <input 
+                                    type="text" 
+                                    id="registerUsername" 
+                                    v-model="registerUsername"
+                                    required
+                                    minlength="3"
+                                >
+                                <div class="field-hint">Минимум 3 символа</div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="registerEmail">Email:</label>
+                                <input 
+                                    type="email" 
+                                    id="registerEmail" 
+                                    v-model="registerEmail"
+                                    required
+                                >
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="registerPassword">Password:</label>
+                                <input 
+                                    type="password" 
+                                    id="registerPassword" 
+                                    v-model="registerPassword"
+                                    required
+                                    minlength="8"
+                                >
+                                <div class="field-hint">Минимум 8 символов, должен содержать заглавные и строчные буквы, цифры</div>
+                            </div>
+                            
+                            <div v-if="state.error" class="error">{{ state.error }}</div>
+                            
+                            <button type="submit">Зарегистрироваться</button>
+                        </form>
+                        <div class="auth-switch">
+                            <p>Уже есть аккаунт? <a href="#" @click.prevent="state.showRegisterForm = false">Войти</a></p>
                         </div>
-                        
-                        <div v-if="state.error" class="error">{{ state.error }}</div>
-                        
-                        <button type="submit">Авторизоваться</button>
-                    </form>
+                    </div>
                 </div>
                 
                 <!-- Таблица с данными, если пользователь аутентифицирован -->
