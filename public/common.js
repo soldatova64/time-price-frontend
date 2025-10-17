@@ -279,7 +279,7 @@ export default {
                                 <td>{{ item.name }}</td>
                                 <td>{{ formatDate(item.pay_date) }}</td>
                                 <td>{{ item.pay_price }}</td>
-                                <td>{{ formatDate(item.sale_date) }}</td>
+                                <td>{{ item.sale_date ? formatDate(item.sale_date) : '-' }}</td>
                                 <td>{{ item.sale_price }}</td>
                                 <td>{{ item.days }}</td>
                                 <td>{{ item.pay_day }}</td>
