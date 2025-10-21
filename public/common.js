@@ -25,6 +25,9 @@ export default {
             registerSuccess: false
         })
 
+        // Базовый URL API
+        const API_BASE = 'http://localhost:8080'
+
         // Проверяем авторизацию при загрузке
         onMounted(async () => {
             if (state.token) {
@@ -38,12 +41,17 @@ export default {
             state.loading = true
             state.error = ''
             try {
-                const response = await fetch('/api/', {
+                console.log('Fetching home data with token:', state.token)
+
+                const response = await fetch(`${API_BASE}/`, {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token}`
                     }
                 })
+
+                console.log('Home response status:', response.status)
 
                 if (response.status === 401) {
                     logout()
@@ -51,10 +59,11 @@ export default {
                 }
 
                 if (!response.ok) {
-                    throw new Error('Ошибка загрузки данных')
+                    throw new Error(`Ошибка загрузки данных: ${response.status}`)
                 }
 
                 const data = await response.json()
+                console.log('Home data received:', data)
                 state.items = data.data
                 state.isAuthenticated = true
             } catch (err) {
@@ -68,8 +77,11 @@ export default {
         // Функция авторизации
         const login = async (username, password) => {
             state.error = ''
+            state.loading = true
             try {
-                const response = await fetch('/api/auth', {
+                console.log('Logging in with:', username)
+
+                const response = await fetch(`${API_BASE}/auth`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -80,11 +92,19 @@ export default {
                     })
                 })
 
+                console.log('Auth response status:', response.status)
+
                 if (!response.ok) {
-                    throw new Error('Ошибка авторизации')
+                    const errorData = await response.json()
+                    if (errorData.errors && errorData.errors.length > 0) {
+                        throw new Error(errorData.errors.map(err => err.message).join(', '))
+                    } else {
+                        throw new Error(`Ошибка авторизации: ${response.status}`)
+                    }
                 }
 
                 const data = await response.json()
+                console.log('Auth data received:', data)
                 state.token = data.data.token
 
                 // Сохраняем токен в cookies на 1 день
@@ -96,16 +116,19 @@ export default {
                 await fetchHomeData()
 
             } catch (err) {
-                state.error = 'Неверные учетные данные'
+                state.error = err.message || 'Неверные учетные данные'
                 console.error('Ошибка авторизации:', err)
+            } finally {
+                state.loading = false
             }
         }
 
         // Функция регистрации
         const register = async (username, email, password) => {
             state.error = ''
+            state.loading = true
             try {
-                const response = await fetch('/api/register', {
+                const response = await fetch(`${API_BASE}/register`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -120,11 +143,10 @@ export default {
                 if (!response.ok) {
                     const errorData = await response.json()
                     if (errorData.errors && errorData.errors.length > 0) {
-                        state.error = errorData.errors.map(err => err.message).join(', ')
+                        throw new Error(errorData.errors.map(err => err.message).join(', '))
                     } else {
-                        state.error = 'Ошибка регистрации'
+                        throw new Error(`Ошибка регистрации: ${response.status}`)
                     }
-                    return
                 }
 
                 state.registerSuccess = true
@@ -132,8 +154,10 @@ export default {
                 state.error = ''
 
             } catch (err) {
-                state.error = 'Ошибка сети или сервера'
+                state.error = err.message || 'Ошибка сети или сервера'
                 console.error('Ошибка регистрации:', err)
+            } finally {
+                state.loading = false
             }
         }
 
@@ -202,7 +226,9 @@ export default {
                             <div v-if="state.error" class="error">{{ state.error }}</div>
                             <div v-if="state.registerSuccess" class="success">Регистрация прошла успешно! Теперь вы можете войти.</div>
                             
-                            <button type="submit">Авторизоваться</button>
+                            <button type="submit" :disabled="state.loading">
+                                {{ state.loading ? 'Авторизация...' : 'Авторизоваться' }}
+                            </button>
                         </form>
                         <div class="auth-switch">
                             <p>Нет аккаунта? <a href="#" @click.prevent="state.showRegisterForm = true">Зарегистрироваться</a></p>
@@ -249,7 +275,9 @@ export default {
                             
                             <div v-if="state.error" class="error">{{ state.error }}</div>
                             
-                            <button type="submit">Зарегистрироваться</button>
+                            <button type="submit" :disabled="state.loading">
+                                {{ state.loading ? 'Регистрация...' : 'Зарегистрироваться' }}
+                            </button>
                         </form>
                         <div class="auth-switch">
                             <p>Уже есть аккаунт? <a href="#" @click.prevent="state.showRegisterForm = false">Войти</a></p>
@@ -280,7 +308,7 @@ export default {
                                 <td>{{ formatDate(item.pay_date) }}</td>
                                 <td>{{ item.pay_price }}</td>
                                 <td>{{ item.sale_date ? formatDate(item.sale_date) : '-' }}</td>
-                                <td>{{ item.sale_price }}</td>
+                                <td>{{ item.sale_price || '-' }}</td>
                                 <td>{{ item.days }}</td>
                                 <td>{{ item.pay_day }}</td>
                             </tr>
