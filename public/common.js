@@ -47,7 +47,7 @@ export default {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${state.token}`
+                        'Authorization': `Bearer ${state.token}`  // ← ВАЖНО: передаем токен
                     }
                 })
 
@@ -113,7 +113,7 @@ export default {
                 document.cookie = `auth_token=${state.token}; expires=${expires.toUTCString()}; path=/`
 
                 state.isAuthenticated = true
-                await fetchHomeData()
+                await fetchHomeData()  // ← После авторизации загружаем данные
 
             } catch (err) {
                 state.error = err.message || 'Неверные учетные данные'
@@ -310,7 +310,7 @@ export default {
                                 <td>{{ item.sale_date ? formatDate(item.sale_date) : '-' }}</td>
                                 <td>{{ item.sale_price || '-' }}</td>
                                 <td>{{ item.days }}</td>
-                                <td>{{ item.pay_day }}</td>
+                                <td>{{ item.pay_day.toFixed(2) }}</td>
                             </tr>
                         </tbody>
                     </table>
