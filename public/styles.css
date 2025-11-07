@@ -199,3 +199,92 @@ tr:hover {
     color: #5865f2;
     font-size: 1.2rem;
 }
+
+/* Добавьте эти стили в styles.css */
+
+/* Секция добавления вещи */
+.add-thing-section {
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.add-thing-btn {
+    background: #5865f2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 12px 24px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+    width: auto;
+    min-width: 200px;
+}
+
+.add-thing-btn:hover {
+    background: #4752c4;
+}
+
+/* Модальное окно */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #2b2d31;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    color: #fff;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.modal-buttons button {
+    flex: 1;
+    margin-top: 0;
+}
+
+.cancel-btn {
+    background: #6e7885 !important;
+}
+
+.cancel-btn:hover {
+    background: #5a6470 !important;
+}
+
+.submit-btn {
+    background: #43b581 !important;
+}
+
+.submit-btn:hover {
+    background: #3ca371 !important;
+}
+
+.submit-btn:disabled {
+    background: #666 !important;
+    cursor: not-allowed;
+}

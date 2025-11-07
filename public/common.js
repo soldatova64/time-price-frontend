@@ -25,8 +25,100 @@ export default {
             registerSuccess: false
         })
 
+        // Реактивные данные для модального окна добавления вещи
+        const showAddThingModal = ref(false)
+        const addThingLoading = ref(false)
+        const addThingError = ref('')
+        const addThingSuccess = ref(false)
+
+        const newThing = reactive({
+            name: '',
+            pay_date: '',
+            pay_price: 0,
+            sale_date: '',
+            sale_price: 0
+        })
+
         // Базовый URL API
-        const API_BASE = 'http://localhost:8080'
+        const API_BASE = '/api'
+
+        // Методы для работы с добавлением вещи
+        const openAddThingModal = () => {
+            showAddThingModal.value = true
+            addThingError.value = ''
+            addThingSuccess.value = false
+            // Сброс формы
+            Object.assign(newThing, {
+                name: '',
+                pay_date: '',
+                pay_price: 0,
+                sale_date: '',
+                sale_price: 0
+            })
+        }
+
+        const closeAddThingModal = () => {
+            showAddThingModal.value = false
+        }
+
+        const submitAddThing = async () => {
+            addThingLoading.value = true
+            addThingError.value = ''
+            addThingSuccess.value = false
+
+            try {
+                // Валидация на клиенте
+                if (!newThing.name || newThing.name.length < 3) {
+                    throw new Error('Название должно содержать минимум 3 символа')
+                }
+                if (!newThing.pay_date) {
+                    throw new Error('Дата покупки обязательна')
+                }
+                if (!newThing.pay_price || newThing.pay_price <= 0) {
+                    throw new Error('Цена покупки должна быть больше 0')
+                }
+
+                // Подготовка данных для отправки
+                const requestData = {
+                    name: newThing.name,
+                    pay_date: newThing.pay_date + 'T00:00:00Z', // Преобразуем в RFC3339
+                    pay_price: parseInt(newThing.pay_price),
+                    sale_date: newThing.sale_date ? newThing.sale_date + 'T00:00:00Z' : null,
+                    sale_price: newThing.sale_price ? parseInt(newThing.sale_price) : null
+                }
+
+                const response = await fetch(`${API_BASE}/admin/thing`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token}`
+                    },
+                    body: JSON.stringify(requestData)
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json()
+                    if (errorData.errors && errorData.errors.length > 0) {
+                        throw new Error(errorData.errors.map(err => err.message).join(', '))
+                    } else {
+                        throw new Error(`Ошибка при добавлении вещи: ${response.status}`)
+                    }
+                }
+
+                addThingSuccess.value = true
+                // Закрываем модальное окно через 1.5 секунды и обновляем данные
+                setTimeout(() => {
+                    closeAddThingModal()
+                    fetchHomeData() // Обновляем список вещей
+                }, 1500)
+
+            } catch (err) {
+                addThingError.value = err.message || 'Ошибка при добавлении вещи'
+                console.error('Ошибка добавления вещи:', err)
+            } finally {
+                addThingLoading.value = false
+            }
+        }
 
         // Проверяем авторизацию при загрузке
         onMounted(async () => {
@@ -176,11 +268,19 @@ export default {
             registerUsername: ref(''),
             registerEmail: ref(''),
             registerPassword: ref(''),
+            showAddThingModal,
+            addThingLoading,
+            addThingError,
+            addThingSuccess,
+            newThing,
             login,
             register,
             logout,
             fetchHomeData,
-            formatToken
+            formatToken,
+            openAddThingModal,
+            closeAddThingModal,
+            submitAddThing
         }
     },
     template: `
@@ -314,7 +414,86 @@ export default {
                             </tr>
                         </tbody>
                     </table>
+                    
+                    <!-- Кнопка добавления вещи -->
+                    <div class="add-thing-section">
+                        <button @click="openAddThingModal" class="add-thing-btn">
+                            Добавить вещь
+                        </button>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Модальное окно для добавления вещи -->
+        <div v-if="showAddThingModal" class="modal-overlay" @click="closeAddThingModal">
+            <div class="modal-content" @click.stop>
+                <h2>Добавить новую вещь</h2>
+                <form @submit.prevent="submitAddThing">
+                    <div class="form-group">
+                        <label for="thingName">Название:</label>
+                        <input 
+                            type="text" 
+                            id="thingName" 
+                            v-model="newThing.name"
+                            required
+                            minlength="3"
+                        >
+                        <div class="field-hint">Минимум 3 символа</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="payDate">Дата покупки:</label>
+                        <input 
+                            type="date" 
+                            id="payDate" 
+                            v-model="newThing.pay_date"
+                            required
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="payPrice">Цена покупки:</label>
+                        <input 
+                            type="number" 
+                            id="payPrice" 
+                            v-model="newThing.pay_price"
+                            required
+                            min="1"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="saleDate">Дата продажи:</label>
+                        <input 
+                            type="date" 
+                            id="saleDate" 
+                            v-model="newThing.sale_date"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="salePrice">Цена продажи:</label>
+                        <input 
+                            type="number" 
+                            id="salePrice" 
+                            v-model="newThing.sale_price"
+                            min="0"
+                        >
+                    </div>
+                    
+                    <div v-if="addThingError" class="error">{{ addThingError }}</div>
+                    <div v-if="addThingSuccess" class="success">Вещь успешно добавлена!</div>
+                    
+                    <div class="modal-buttons">
+                        <button type="button" @click="closeAddThingModal" class="cancel-btn">
+                            Отмена
+                        </button>
+                        <button type="submit" :disabled="addThingLoading" class="submit-btn">
+                            {{ addThingLoading ? 'Добавление...' : 'Добавить' }}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
