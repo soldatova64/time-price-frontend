@@ -47,7 +47,7 @@ export default {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${state.token}`  // ← ВАЖНО: передаем токен
+                        'Authorization': `Bearer ${state.token}`
                     }
                 })
 
