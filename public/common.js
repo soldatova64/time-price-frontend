@@ -22,7 +22,8 @@ export default {
             items: [],
             token: getCookie('auth_token') || '',
             showRegisterForm: false,
-            registerSuccess: false
+            registerSuccess: false,
+            expenses: []
         })
 
         // Реактивные данные для модального окна добавления вещи
@@ -30,6 +31,18 @@ export default {
         const addThingLoading = ref(false)
         const addThingError = ref('')
         const addThingSuccess = ref(false)
+
+        const showAddExpenseModal = ref(false)
+        const addExpenseLoading = ref(false)
+        const addExpenseError = ref('')
+        const addExpenseSuccess = ref(false)
+
+        const newExpense = reactive({
+            thing_id: null,
+            sum: 0,
+            description: '',
+            expense_date: ''
+        })
 
         const newThing = reactive({
             name: '',
@@ -117,6 +130,80 @@ export default {
                 console.error('Ошибка добавления вещи:', err)
             } finally {
                 addThingLoading.value = false
+            }
+        }
+
+        // Добавьте методы для работы с расходами
+        const openAddExpenseModal = (thingId) => {
+            newExpense.thing_id = thingId
+            newExpense.sum = 0
+            newExpense.description = ''
+            newExpense.expense_date = ''
+            showAddExpenseModal.value = true
+            addExpenseError.value = ''
+            addExpenseSuccess.value = false
+        }
+
+        const closeAddExpenseModal = () => {
+            showAddExpenseModal.value = false
+        }
+
+        const submitAddExpense = async () => {
+            addExpenseLoading.value = true
+            addExpenseError.value = ''
+            addExpenseSuccess.value = false
+
+            try {
+                // Валидация
+                if (!newExpense.thing_id) {
+                    throw new Error('Не выбрана вещь')
+                }
+                if (!newExpense.sum || newExpense.sum <= 0) {
+                    throw new Error('Сумма должна быть больше 0')
+                }
+                if (!newExpense.description || newExpense.description.length < 3) {
+                    throw new Error('Описание должно содержать минимум 3 символа')
+                }
+                if (!newExpense.expense_date) {
+                    throw new Error('Дата расхода обязательна')
+                }
+
+                const requestData = {
+                    thing_id: parseInt(newExpense.thing_id),
+                    sum: parseInt(newExpense.sum),
+                    description: newExpense.description,
+                    expense_date: newExpense.expense_date + 'T00:00:00Z'
+                }
+
+                const response = await fetch(`${API_BASE}/admin/expense`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${state.token}`
+                    },
+                    body: JSON.stringify(requestData)
+                })
+
+                if (!response.ok) {
+                    const errorData = await response.json()
+                    if (errorData.errors && errorData.errors.length > 0) {
+                        throw new Error(errorData.errors.map(err => err.message).join(', '))
+                    } else {
+                        throw new Error(`Ошибка при добавлении расхода: ${response.status}`)
+                    }
+                }
+
+                addExpenseSuccess.value = true
+                setTimeout(() => {
+                    closeAddExpenseModal()
+                    // Можно обновить данные если нужно
+                }, 1500)
+
+            } catch (err) {
+                addExpenseError.value = err.message || 'Ошибка при добавлении расхода'
+                console.error('Ошибка добавления расхода:', err)
+            } finally {
+                addExpenseLoading.value = false
             }
         }
 
@@ -280,7 +367,15 @@ export default {
             formatToken,
             openAddThingModal,
             closeAddThingModal,
-            submitAddThing
+            submitAddThing,
+            showAddExpenseModal,
+            addExpenseLoading,
+            addExpenseError,
+            addExpenseSuccess,
+            newExpense,
+            openAddExpenseModal,
+            closeAddExpenseModal,
+            submitAddExpense
         }
     },
     template: `
@@ -399,6 +494,7 @@ export default {
                                 <th>Цена продажи</th>
                                 <th>Дней владения</th>
                                 <th>Цена за день</th>
+                                <th>Действия</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -411,6 +507,11 @@ export default {
                                 <td>{{ item.sale_price || '-' }}</td>
                                 <td>{{ item.days }}</td>
                                 <td>{{ item.pay_day.toFixed(2) }}</td>
+                                <td>
+                                    <button @click="openAddExpenseModal(item.id)" class="add-expense-btn">
+                                        Добавить расход
+                                    </button>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -424,7 +525,7 @@ export default {
                 </div>
             </div>
         </div>
-
+    
         <!-- Модальное окно для добавления вещи -->
         <div v-if="showAddThingModal" class="modal-overlay" @click="closeAddThingModal">
             <div class="modal-content" @click.stop>
@@ -491,6 +592,69 @@ export default {
                         </button>
                         <button type="submit" :disabled="addThingLoading" class="submit-btn">
                             {{ addThingLoading ? 'Добавление...' : 'Добавить' }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    
+        <!-- Модальное окно для добавления расхода -->
+        <div v-if="showAddExpenseModal" class="modal-overlay" @click="closeAddExpenseModal">
+            <div class="modal-content" @click.stop>
+                <h2>Добавить расход</h2>
+                <form @submit.prevent="submitAddExpense">
+                    <div class="form-group">
+                        <label for="expenseThingId">ID вещи:</label>
+                        <input 
+                            type="number" 
+                            id="expenseThingId" 
+                            v-model="newExpense.thing_id"
+                            disabled
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expenseSum">Сумма:</label>
+                        <input 
+                            type="number" 
+                            id="expenseSum" 
+                            v-model="newExpense.sum"
+                            required
+                            min="1"
+                        >
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expenseDescription">Описание:</label>
+                        <input 
+                            type="text" 
+                            id="expenseDescription" 
+                            v-model="newExpense.description"
+                            required
+                            minlength="3"
+                        >
+                        <div class="field-hint">Минимум 3 символа</div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="expenseDate">Дата расхода:</label>
+                        <input 
+                            type="date" 
+                            id="expenseDate" 
+                            v-model="newExpense.expense_date"
+                            required
+                        >
+                    </div>
+                    
+                    <div v-if="addExpenseError" class="error">{{ addExpenseError }}</div>
+                    <div v-if="addExpenseSuccess" class="success">Расход успешно добавлен!</div>
+                    
+                    <div class="modal-buttons">
+                        <button type="button" @click="closeAddExpenseModal" class="cancel-btn">
+                            Отмена
+                        </button>
+                        <button type="submit" :disabled="addExpenseLoading" class="submit-btn">
+                            {{ addExpenseLoading ? 'Добавление...' : 'Добавить' }}
                         </button>
                     </div>
                 </form>
