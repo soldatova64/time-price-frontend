@@ -312,3 +312,147 @@ tr:hover {
 .modal-content {
     z-index: 1001;
 }
+
+/* Шапка с кнопками */
+.header-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.profile-btn {
+    background: #43b581;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.profile-btn:hover {
+    background: #3ca371;
+}
+
+/* Заголовок таблицы */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+/* Кнопки действий */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.edit-btn, .delete-btn, .add-expense-btn, .view-expenses-btn {
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.edit-btn {
+    background: #5865f2;
+    color: white;
+}
+
+.edit-btn:hover {
+    background: #4752c4;
+}
+
+.delete-btn {
+    background: #f04747;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #d83c3c;
+}
+
+.add-expense-btn {
+    background: #43b581;
+    color: white;
+}
+
+.add-expense-btn:hover {
+    background: #3ca371;
+}
+
+.view-expenses-btn {
+    background: #6e7885;
+    color: white;
+}
+
+.view-expenses-btn:hover {
+    background: #5a6470;
+}
+
+/* Широкое модальное окно */
+.wide-modal {
+    max-width: 800px;
+    max-height: 80vh;
+}
+
+.expenses-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-bottom: 1rem;
+}
+
+/* Состояние пустого списка */
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+    color: #888;
+    font-style: italic;
+}
+
+/* Кнопка добавления в модальном окне */
+.add-btn {
+    background: #43b581;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 10px 20px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+.add-btn:hover {
+    background: #3ca371;
+}
+
+/* Иконки в кнопках */
+.edit-btn, .delete-btn, .add-expense-btn {
+    min-width: 40px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Адаптивность таблицы */
+@media (max-width: 1200px) {
+    .data-table {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 1000px;
+    }
+}
+
+/* Подсказки для полей */
+.field-hint {
+    font-size: 0.8rem;
+    color: #888;
+    margin-top: 0.25rem;
+    font-style: italic;
+}
