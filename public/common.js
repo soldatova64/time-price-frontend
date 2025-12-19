@@ -767,6 +767,12 @@ export default {
             <div v-if="state.loading" class="loading">Загрузка...</div>
             
             <div v-else>
+            <div v-if="!state.isAuthenticated" class="auth-forms">
+    <!-- Добавляем заголовок -->
+    <div class="app-title">
+        <h1 class="main-title">Расчет стоимости вещи во времени</h1>
+        <p class="subtitle">Учет владения, расходов и амортизации</p>
+    </div>
                 <!-- Форма авторизации/регистрации, если пользователь не аутентифицирован -->
                 <div v-if="!state.isAuthenticated" class="auth-forms">
                     <!-- Форма авторизации -->
