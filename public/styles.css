@@ -456,3 +456,53 @@ tr:hover {
     margin-top: 0.25rem;
     font-style: italic;
 }
+
+.app-title {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.app-title::before {
+    content: '⏳';
+    font-size: 4rem;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.05;
+    z-index: 0;
+}
+
+.main-title {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+    padding: 0;
+    position: relative;
+    display: inline-block;
+}
+
+.main-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120px;
+    height: 4px;
+    background: linear-gradient(90deg, #5865f2, #43b581);
+    border-radius: 2px;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    color: #c6cdc9;
+    margin-top: 1.5rem;
+    font-weight: 400;
+    letter-spacing: 1px;
+}
