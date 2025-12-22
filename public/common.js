@@ -55,6 +55,12 @@ export default {
         const editProfileError = ref('')
         const editProfileSuccess = ref(false)
 
+        // Переменные для переключения видимости пароля
+        const showRegisterPassword = ref(false)
+        const showLoginPassword = ref(false)
+        const showEditProfilePassword = ref(false)
+        const showEditProfileConfirmPassword = ref(false)
+
         const newExpense = reactive({
             thing_id: null,
             sum: 0,
@@ -734,7 +740,11 @@ export default {
             openEditProfileModal,
             closeEditProfileModal,
             submitEditProfile,
-            formatDateForInput
+            formatDateForInput,
+            showRegisterPassword,
+            showLoginPassword,
+            showEditProfilePassword,
+            showEditProfileConfirmPassword
         }
     },
     methods: {
@@ -791,12 +801,22 @@ export default {
                             
                             <div class="form-group">
                                 <label for="password">Password:</label>
-                                <input 
-                                    type="password" 
-                                    id="password" 
-                                    v-model="password"
-                                    required
-                                >
+                                <div class="password-field">
+                                    <input 
+                                        :type="showLoginPassword ? 'text' : 'password'" 
+                                        id="password" 
+                                        v-model="password"
+                                        required
+                                    >
+                                    <button 
+                                        type="button" 
+                                        class="toggle-password"
+                                        @click="showLoginPassword = !showLoginPassword"
+                                        tabindex="-1"
+                                    >
+                                        {{ showLoginPassword ? '🙈' : '👁️' }}
+                                    </button>
+                                </div>
                             </div>
                             
                             <div v-if="state.error" class="error">{{ state.error }}</div>
@@ -839,16 +859,26 @@ export default {
                             
                             <div class="form-group">
                                 <label for="registerPassword">Password:</label>
-                                <input 
-                                    type="password" 
-                                    id="registerPassword" 
-                                    v-model="registerPassword"
-                                    required
-                                    minlength="8"
-                                >
+                                <div class="password-field">
+                                    <input 
+                                        :type="showRegisterPassword ? 'text' : 'password'" 
+                                        id="registerPassword" 
+                                        v-model="registerPassword"
+                                        required
+                                        minlength="8"
+                                    >
+                                    <button 
+                                        type="button" 
+                                        class="toggle-password"
+                                        @click="showRegisterPassword = !showRegisterPassword"
+                                        tabindex="-1"
+                                    >
+                                        {{ showRegisterPassword ? '🙈' : '👁️' }}
+                                    </button>
+                                </div>
                                 <div class="field-hint">Минимум 8 символов, должен содержать заглавные и строчные буквы, цифры</div>
                             </div>
-                            
+        
                             <div v-if="state.error" class="error">{{ state.error }}</div>
                             
                             <button type="submit" :disabled="state.loading">

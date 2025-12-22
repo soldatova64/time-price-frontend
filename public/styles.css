@@ -506,3 +506,61 @@ tr:hover {
     font-weight: 400;
     letter-spacing: 1px;
 }
+
+/* Контейнер для поля пароля с кнопкой */
+.password-field {
+    position: relative;
+    width: 100%;
+}
+
+.password-field input {
+    padding-right: 40px; /* Отступ для кнопки */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Кнопка переключения видимости пароля */
+.toggle-password {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #888;
+    transition: color 0.2s;
+    width: auto;
+    min-width: auto;
+    margin: 0;
+}
+
+.toggle-password:hover {
+    color: #5865f2;
+    background: none;
+}
+
+.toggle-password:focus {
+    outline: none;
+    color: #5865f2;
+}
+
+/* Адаптивность для маленьких экранов */
+@media (max-width: 480px) {
+    .toggle-password {
+        right: 5px;
+        padding: 2px 6px;
+    }
+
+    .password-field input {
+        padding-right: 35px;
+    }
+
+    .login-form, .register-form {
+        width: 100%;
+        max-width: 350px;
+        padding: 1.5rem;
+    }
+}
