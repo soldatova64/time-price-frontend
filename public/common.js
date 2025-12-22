@@ -777,14 +777,16 @@ export default {
             <div v-if="state.loading" class="loading">Загрузка...</div>
             
             <div v-else>
-            <div v-if="!state.isAuthenticated" class="auth-forms">
-    <!-- Добавляем заголовок -->
-    <div class="app-title">
-        <h1 class="main-title">Расчет стоимости вещи во времени</h1>
-        <p class="subtitle">Учет владения, расходов и амортизации</p>
-    </div>
-                <!-- Форма авторизации/регистрации, если пользователь не аутентифицирован -->
-                <div v-if="!state.isAuthenticated" class="auth-forms">
+            <!-- Если пользователь не авторизован, показываем формы -->
+            <div v-if="!state.isAuthenticated">
+                <!-- Заголовок -->
+                <div class="app-title">
+                    <h1 class="main-title">Расчет стоимости вещи во времени</h1>
+                    <p class="subtitle">Учет владения, расходов и амортизации</p>
+                </div>
+                
+                <!-- Формы авторизации/регистрации -->
+                <div class="auth-forms">
                     <!-- Форма авторизации -->
                     <div v-if="!state.showRegisterForm" class="login-form">
                         <h2>Авторизация</h2>
@@ -890,8 +892,7 @@ export default {
                         </div>
                     </div>
                 </div>
-                
-                <!-- Таблица с данными, если пользователь аутентифицирован -->
+            </div>
                 <div v-else class="data-table">
                     <div class="table-header">
                         <h2>Мои вещи</h2>
@@ -949,7 +950,6 @@ export default {
                     
                     <div v-if="state.items.length === 0" class="empty-state">
                         <p>У вас пока нет вещей. Добавьте первую!</p>
-                    </div>
                 </div>
             </div>
         </div>
