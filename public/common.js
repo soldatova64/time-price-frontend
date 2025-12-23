@@ -13,6 +13,78 @@ function formatToken(token) {
     return `${token.substring(0, 5)}...${token.substring(token.length - 5)}`
 }
 
+// Функция для преобразования разных форматов даты в ISO формат (YYYY-MM-DD)
+function normalizeDate(dateStr) {
+    if (!dateStr) return ''
+
+    // Удаляем лишние пробелы
+    dateStr = dateStr.trim()
+
+    // Пробуем разные форматы
+    // 1. Формат DD.MM.YYYY
+    if (dateStr.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/)) {
+        const parts = dateStr.split('.')
+        const day = parts[0].padStart(2, '0')
+        const month = parts[1].padStart(2, '0')
+        const year = parts[2]
+        return `${year}-${month}-${day}`
+    }
+    // 2. Формат DD-MM-YYYY
+    else if (dateStr.match(/^\d{1,2}-\d{1,2}-\d{4}$/)) {
+        const parts = dateStr.split('-')
+        const day = parts[0].padStart(2, '0')
+        const month = parts[1].padStart(2, '0')
+        const year = parts[2]
+        return `${year}-${month}-${day}`
+    }
+    // 3. Формат DD/MM/YYYY
+    else if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+        const parts = dateStr.split('/')
+        const day = parts[0].padStart(2, '0')
+        const month = parts[1].padStart(2, '0')
+        const year = parts[2]
+        return `${year}-${month}-${day}`
+    }
+    // 4. Формат YYYY-MM-DD (уже правильный)
+    else if (dateStr.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+        const parts = dateStr.split('-')
+        const year = parts[0]
+        const month = parts[1].padStart(2, '0')
+        const day = parts[2].padStart(2, '0')
+        return `${year}-${month}-${day}`
+    }
+
+    return dateStr
+}
+
+// Функция для форматирования даты для отображения в поле ввода
+function formatDateForInput(dateString) {
+    if (!dateString) return ''
+
+    // Если дата уже в формате DD.MM.YYYY, оставляем как есть
+    if (dateString.match(/^\d{1,2}\.\d{1,2}\.\d{4}$/)) {
+        return dateString
+    }
+
+    try {
+        const date = new Date(dateString)
+        if (isNaN(date.getTime())) {
+            console.error('Invalid date:', dateString)
+            return ''
+        }
+
+        // Преобразуем в формат DD.MM.YYYY для удобства пользователя
+        const day = String(date.getDate()).padStart(2, '0')
+        const month = String(date.getMonth() + 1).padStart(2, '0')
+        const year = date.getFullYear()
+
+        return `${day}.${month}.${year}`
+    } catch (err) {
+        console.error('Error formatting date:', err)
+        return dateString
+    }
+}
+
 export default {
     setup() {
         const state = reactive({
@@ -25,7 +97,7 @@ export default {
             registerSuccess: false,
             expenses: [],
             userProfile: null,
-            activeTab: 'things' // 'things' или 'expenses' или 'profile'
+            activeTab: 'things'
         })
 
         // Реактивные данные для модальных окон вещей
@@ -107,9 +179,14 @@ export default {
             showAddThingModal.value = true
             addThingError.value = ''
             addThingSuccess.value = false
+
+            // Получаем текущую дату в формате DD.MM.YYYY
+            const today = new Date()
+            const currentDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`
+
             Object.assign(newThing, {
                 name: '',
-                pay_date: '',
+                pay_date: currentDate, // Текущая дата в формате DD.MM.YYYY
                 pay_price: 0,
                 sale_date: '',
                 sale_price: 0
@@ -147,18 +224,39 @@ export default {
                 if (!newThing.name || newThing.name.length < 3) {
                     throw new Error('Название должно содержать минимум 3 символа')
                 }
-                if (!newThing.pay_date) {
+
+                // Нормализуем дату
+                const normalizedPayDate = normalizeDate(newThing.pay_date)
+                if (!normalizedPayDate) {
                     throw new Error('Дата покупки обязательна')
                 }
+
+                // Проверяем, что дата корректна
+                const payDateObj = new Date(normalizedPayDate + 'T00:00:00Z')
+                if (isNaN(payDateObj.getTime())) {
+                    throw new Error('Некорректная дата покупки. Используйте формат ДД.ММ.ГГГГ')
+                }
+
                 if (!newThing.pay_price || newThing.pay_price <= 0) {
                     throw new Error('Цена покупки должна быть больше 0')
                 }
 
+                let normalizedSaleDate = null
+                if (newThing.sale_date) {
+                    normalizedSaleDate = normalizeDate(newThing.sale_date)
+                    if (normalizedSaleDate) {
+                        const saleDateObj = new Date(normalizedSaleDate + 'T00:00:00Z')
+                        if (isNaN(saleDateObj.getTime())) {
+                            throw new Error('Некорректная дата продажи. Используйте формат ДД.ММ.ГГГГ')
+                        }
+                    }
+                }
+
                 const requestData = {
                     name: newThing.name,
-                    pay_date: newThing.pay_date + 'T00:00:00Z',
+                    pay_date: normalizedPayDate + 'T00:00:00Z',
                     pay_price: parseInt(newThing.pay_price),
-                    sale_date: newThing.sale_date ? newThing.sale_date + 'T00:00:00Z' : null,
+                    sale_date: normalizedSaleDate ? normalizedSaleDate + 'T00:00:00Z' : null,
                     sale_price: newThing.sale_price ? parseInt(newThing.sale_price) : null
                 }
 
@@ -203,18 +301,39 @@ export default {
                 if (!editThing.name || editThing.name.length < 3) {
                     throw new Error('Название должно содержать минимум 3 символа')
                 }
-                if (!editThing.pay_date) {
+
+                // Нормализуем дату
+                const normalizedPayDate = normalizeDate(editThing.pay_date)
+                if (!normalizedPayDate) {
                     throw new Error('Дата покупки обязательна')
                 }
+
+                // Проверяем, что дата корректна
+                const payDateObj = new Date(normalizedPayDate + 'T00:00:00Z')
+                if (isNaN(payDateObj.getTime())) {
+                    throw new Error('Некорректная дата покупки. Используйте формат ДД.ММ.ГГГГ')
+                }
+
                 if (!editThing.pay_price || editThing.pay_price <= 0) {
                     throw new Error('Цена покупки должна быть больше 0')
                 }
 
+                let normalizedSaleDate = null
+                if (editThing.sale_date) {
+                    normalizedSaleDate = normalizeDate(editThing.sale_date)
+                    if (normalizedSaleDate) {
+                        const saleDateObj = new Date(normalizedSaleDate + 'T00:00:00Z')
+                        if (isNaN(saleDateObj.getTime())) {
+                            throw new Error('Некорректная дата продажи. Используйте формат ДД.ММ.ГГГГ')
+                        }
+                    }
+                }
+
                 const requestData = {
                     name: editThing.name,
-                    pay_date: editThing.pay_date + 'T00:00:00Z',
+                    pay_date: normalizedPayDate + 'T00:00:00Z',
                     pay_price: parseInt(editThing.pay_price),
-                    sale_date: editThing.sale_date ? editThing.sale_date + 'T00:00:00Z' : null,
+                    sale_date: normalizedSaleDate ? normalizedSaleDate + 'T00:00:00Z' : null,
                     sale_price: editThing.sale_price ? parseInt(editThing.sale_price) : null
                 }
 
@@ -280,7 +399,12 @@ export default {
             newExpense.thing_id = thingId
             newExpense.sum = 0
             newExpense.description = ''
-            newExpense.expense_date = ''
+
+            // Получаем текущую дату в формате DD.MM.YYYY
+            const today = new Date()
+            const currentDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`
+            newExpense.expense_date = currentDate
+
             showAddExpenseModal.value = true
             addExpenseError.value = ''
             addExpenseSuccess.value = false
@@ -329,15 +453,24 @@ export default {
                 if (!newExpense.description || newExpense.description.length < 3) {
                     throw new Error('Описание должно содержать минимум 3 символа')
                 }
-                if (!newExpense.expense_date) {
+
+                // Нормализуем дату
+                const normalizedExpenseDate = normalizeDate(newExpense.expense_date)
+                if (!normalizedExpenseDate) {
                     throw new Error('Дата расхода обязательна')
+                }
+
+                // Проверяем, что дата корректна
+                const expenseDateObj = new Date(normalizedExpenseDate + 'T00:00:00Z')
+                if (isNaN(expenseDateObj.getTime())) {
+                    throw new Error('Некорректная дата расхода. Используйте формат ДД.ММ.ГГГГ')
                 }
 
                 const requestData = {
                     thing_id: parseInt(newExpense.thing_id),
                     sum: parseInt(newExpense.sum),
                     description: newExpense.description,
-                    expense_date: newExpense.expense_date + 'T00:00:00Z'
+                    expense_date: normalizedExpenseDate + 'T00:00:00Z'
                 }
 
                 const response = await fetch(`${API_BASE}/admin/expense`, {
@@ -387,15 +520,24 @@ export default {
                 if (!editExpense.description || editExpense.description.length < 3) {
                     throw new Error('Описание должно содержать минимум 3 символа')
                 }
-                if (!editExpense.expense_date) {
+
+                // Нормализуем дату
+                const normalizedExpenseDate = normalizeDate(editExpense.expense_date)
+                if (!normalizedExpenseDate) {
                     throw new Error('Дата расхода обязательна')
+                }
+
+                // Проверяем, что дата корректна
+                const expenseDateObj = new Date(normalizedExpenseDate + 'T00:00:00Z')
+                if (isNaN(expenseDateObj.getTime())) {
+                    throw new Error('Некорректная дата расхода. Используйте формат ДД.ММ.ГГГГ')
                 }
 
                 const requestData = {
                     thing_id: parseInt(editExpense.thing_id),
                     sum: parseInt(editExpense.sum),
                     description: editExpense.description,
-                    expense_date: editExpense.expense_date + 'T00:00:00Z'
+                    expense_date: normalizedExpenseDate + 'T00:00:00Z'
                 }
 
                 const response = await fetch(`${API_BASE}/admin/expense/${editExpense.id}`, {
@@ -677,11 +819,7 @@ export default {
             state.activeTab = 'things'
         }
 
-        const formatDateForInput = (dateString) => {
-            if (!dateString) return ''
-            const date = new Date(dateString)
-            return date.toISOString().split('T')[0]
-        }
+        // Используем formatDateForInput, который теперь возвращает DD.MM.YYYY
 
         return {
             state,
@@ -740,6 +878,7 @@ export default {
             openEditProfileModal,
             closeEditProfileModal,
             submitEditProfile,
+            normalizeDate,
             formatDateForInput,
             showRegisterPassword,
             showLoginPassword,
@@ -749,6 +888,7 @@ export default {
     },
     methods: {
         formatDate(dateString) {
+            if (!dateString) return '-'
             const date = new Date(dateString)
             return date.toLocaleDateString('ru-RU')
         },
@@ -967,6 +1107,7 @@ export default {
                             v-model="newThing.name"
                             required
                             minlength="3"
+                            placeholder="Например: Ноутбук MacBook Pro"
                         >
                         <div class="field-hint">Минимум 3 символа</div>
                     </div>
@@ -974,11 +1115,13 @@ export default {
                     <div class="form-group">
                         <label for="payDate">Дата покупки:</label>
                         <input 
-                            type="date" 
+                            type="text" 
                             id="payDate" 
                             v-model="newThing.pay_date"
                             required
+                            placeholder="ДД.ММ.ГГГГ"
                         >
+                        <div class="field-hint">Формат: ДД.ММ.ГГГГ (например: 22.12.2006)</div>
                     </div>
                     
                     <div class="form-group">
@@ -989,16 +1132,20 @@ export default {
                             v-model="newThing.pay_price"
                             required
                             min="1"
+                            step="1"
+                            placeholder="100000"
                         >
                     </div>
                     
                     <div class="form-group">
                         <label for="saleDate">Дата продажи:</label>
                         <input 
-                            type="date" 
+                            type="text" 
                             id="saleDate" 
                             v-model="newThing.sale_date"
+                            placeholder="ДД.ММ.ГГГГ"
                         >
+                        <div class="field-hint">Необязательно. Формат: ДД.ММ.ГГГГ</div>
                     </div>
                     
                     <div class="form-group">
@@ -1008,6 +1155,8 @@ export default {
                             id="salePrice" 
                             v-model="newThing.sale_price"
                             min="0"
+                            step="1"
+                            placeholder="0"
                         >
                     </div>
                     
@@ -1039,17 +1188,20 @@ export default {
                             v-model="editThing.name"
                             required
                             minlength="3"
+                            placeholder="Например: Ноутбук MacBook Pro"
                         >
                     </div>
                     
                     <div class="form-group">
                         <label for="editPayDate">Дата покупки:</label>
                         <input 
-                            type="date" 
+                            type="text" 
                             id="editPayDate" 
                             v-model="editThing.pay_date"
                             required
+                            placeholder="ДД.ММ.ГГГГ"
                         >
+                        <div class="field-hint">Формат: ДД.ММ.ГГГГ (например: 22.12.2006)</div>
                     </div>
                     
                     <div class="form-group">
@@ -1060,16 +1212,19 @@ export default {
                             v-model="editThing.pay_price"
                             required
                             min="1"
+                            step="1"
                         >
                     </div>
                     
                     <div class="form-group">
                         <label for="editSaleDate">Дата продажи:</label>
                         <input 
-                            type="date" 
+                            type="text" 
                             id="editSaleDate" 
                             v-model="editThing.sale_date"
+                            placeholder="ДД.ММ.ГГГГ"
                         >
+                        <div class="field-hint">Необязательно. Формат: ДД.ММ.ГГГГ</div>
                     </div>
                     
                     <div class="form-group">
@@ -1079,6 +1234,7 @@ export default {
                             id="editSalePrice" 
                             v-model="editThing.sale_price"
                             min="0"
+                            step="1"
                         >
                     </div>
                     
@@ -1120,6 +1276,8 @@ export default {
                             v-model="newExpense.sum"
                             required
                             min="1"
+                            step="1"
+                            placeholder="1000"
                         >
                     </div>
                     
@@ -1131,6 +1289,7 @@ export default {
                             v-model="newExpense.description"
                             required
                             minlength="3"
+                            placeholder="Например: Замена аккумулятора"
                         >
                         <div class="field-hint">Минимум 3 символа</div>
                     </div>
@@ -1138,11 +1297,13 @@ export default {
                     <div class="form-group">
                         <label for="expenseDate">Дата расхода:</label>
                         <input 
-                            type="date" 
+                            type="text" 
                             id="expenseDate" 
                             v-model="newExpense.expense_date"
                             required
+                            placeholder="ДД.ММ.ГГГГ"
                         >
+                        <div class="field-hint">Формат: ДД.ММ.ГГГГ (например: 22.12.2006)</div>
                     </div>
                     
                     <div v-if="addExpenseError" class="error">{{ addExpenseError }}</div>
@@ -1183,6 +1344,7 @@ export default {
                             v-model="editExpense.sum"
                             required
                             min="1"
+                            step="1"
                         >
                     </div>
                     
@@ -1200,11 +1362,13 @@ export default {
                     <div class="form-group">
                         <label for="editExpenseDate">Дата расхода:</label>
                         <input 
-                            type="date" 
+                            type="text" 
                             id="editExpenseDate" 
                             v-model="editExpense.expense_date"
                             required
+                            placeholder="ДД.ММ.ГГГГ"
                         >
+                        <div class="field-hint">Формат: ДД.ММ.ГГГГ</div>
                     </div>
                     
                     <div v-if="editExpenseError" class="error">{{ editExpenseError }}</div>
