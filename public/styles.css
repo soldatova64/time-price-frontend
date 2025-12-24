@@ -564,3 +564,20 @@ tr:hover {
         padding: 1.5rem;
     }
 }
+
+.modal-overlay {
+    z-index: 1000;
+}
+
+.modal-content {
+    z-index: 1001;
+}
+
+/* Для вложенных модальных окон */
+.modal-overlay.active-modal {
+    z-index: 1002;
+}
+
+.modal-overlay.active-modal .modal-content {
+    z-index: 1003;
+}
