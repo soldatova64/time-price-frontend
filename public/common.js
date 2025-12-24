@@ -369,6 +369,26 @@ export default {
             }
         }
 
+        const updateThingExpenses = async (thingId) => {
+            try {
+                const response = await fetch(`${API_BASE}/admin/thing/${thingId}/expenses`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${state.token}`
+                    }
+                })
+
+                if (response.ok) {
+                    const data = await response.json()
+                    if (state.selectedThingForExpenses && state.selectedThingForExpenses.id === thingId) {
+                        state.selectedThingForExpenses.expense = data.data || []
+                    }
+                }
+            } catch (err) {
+                console.error('Ошибка обновления расходов:', err)
+            }
+        }
+
         const deleteThing = async (id) => {
             if (!confirm('Вы уверены, что хотите удалить эту вещь?')) {
                 return
@@ -394,8 +414,12 @@ export default {
             }
         }
 
-        // ========== МЕТОДЫ ДЛЯ РАСХОДОВ ==========
         const openAddExpenseModal = (thingId) => {
+            // Закрываем окно списка расходов при открытии добавления
+            if (showExpensesListModal.value) {
+                showExpensesListModal.value = false
+            }
+
             newExpense.thing_id = thingId
             newExpense.sum = 0
             newExpense.description = ''
@@ -412,6 +436,11 @@ export default {
 
         const closeAddExpenseModal = () => {
             showAddExpenseModal.value = false
+            if (state.selectedThingForExpenses) {
+                setTimeout(() => {
+                    showExpensesListModal.value = true
+                }, 10)
+            }
         }
 
         const openEditExpenseModal = (expense) => {
@@ -423,10 +452,24 @@ export default {
             showEditExpenseModal.value = true
             editExpenseError.value = ''
             editExpenseSuccess.value = false
+
+            if (showExpensesListModal.value) {
+                showExpensesListModal.value = false
+            }
+
+            showEditExpenseModal.value = true
+            editExpenseError.value = ''
+            editExpenseSuccess.value = false
         }
 
         const closeEditExpenseModal = () => {
             showEditExpenseModal.value = false
+
+            if (state.selectedThingForExpenses) {
+                setTimeout(() => {
+                    showExpensesListModal.value = true
+                }, 10)
+            }
         }
 
         const openExpensesListModal = (thing) => {
@@ -491,10 +534,32 @@ export default {
                     }
                 }
 
+                const newExpenseData = await response.json()
                 addExpenseSuccess.value = true
+
+                if (state.selectedThingForExpenses && state.selectedThingForExpenses.id === newExpense.thing_id) {
+
+                    if (!state.selectedThingForExpenses.expense) {
+                        state.selectedThingForExpenses.expense = []
+                    }
+                    // Добавляем новый расход в массив расходов
+                    state.selectedThingForExpenses.expense.push(newExpenseData.data || {
+                        id: newExpenseData.data?.id || Date.now(),
+                        thing_id: newExpense.thing_id,
+                        sum: newExpense.sum,
+                        description: newExpense.description,
+                        expense_date: normalizedExpenseDate + 'T00:00:00Z'
+                    })
+                }
+
+                await updateThingExpenses(newExpense.thing_id)
+
                 setTimeout(() => {
                     closeAddExpenseModal()
                     fetchHomeData()
+                    if (state.selectedThingForExpenses) {
+                        openExpensesListModal(state.selectedThingForExpenses)
+                    }
                 }, 1500)
 
             } catch (err) {
@@ -558,7 +623,28 @@ export default {
                     }
                 }
 
+                const updatedExpenseData = await response.json()
                 editExpenseSuccess.value = true
+
+                // Немедленно обновляем данные в выбранной вещи
+                if (state.selectedThingForExpenses && state.selectedThingForExpenses.expense) {
+                    const expenseIndex = state.selectedThingForExpenses.expense.findIndex(
+                        expense => expense.id === editExpense.id
+                    )
+                    if (expenseIndex !== -1) {
+                        state.selectedThingForExpenses.expense[expenseIndex] = {
+                            ...state.selectedThingForExpenses.expense[expenseIndex],
+                            ...(updatedExpenseData.data || {
+                                sum: editExpense.sum,
+                                description: editExpense.description,
+                                expense_date: normalizedExpenseDate + 'T00:00:00Z'
+                            })
+                        }
+                    }
+                }
+
+                await updateThingExpenses(editExpense.thing_id)
+
                 setTimeout(() => {
                     closeEditExpenseModal()
                     fetchHomeData()
@@ -590,6 +676,15 @@ export default {
                     throw new Error(errorData.errors?.[0]?.message || 'Ошибка при удалении расхода')
                 }
 
+                // Немедленно удаляем расход из выбранной вещи
+                if (state.selectedThingForExpenses && state.selectedThingForExpenses.expense) {
+                    state.selectedThingForExpenses.expense = state.selectedThingForExpenses.expense.filter(
+                        expense => expense.id !== id
+                    )
+                }
+
+                await updateThingExpenses(state.selectedThingForExpenses.id)
+
                 fetchHomeData()
                 if (showExpensesListModal.value) {
                     // Если открыто окно со списком расходов, обновляем данные
@@ -616,6 +711,19 @@ export default {
 
         const closeEditProfileModal = () => {
             showEditProfileModal.value = false
+        }
+
+        const cancelEditExpense = () => {
+            closeEditExpenseModal()
+        }
+
+        const cancelAddExpense = () => {
+            showAddExpenseModal.value = false
+            if (state.selectedThingForExpenses) {
+                setTimeout(() => {
+                    showExpensesListModal.value = true
+                }, 10)
+            }
         }
 
         const submitEditProfile = async () => {
@@ -1254,7 +1362,7 @@ export default {
         </div>
     
         <!-- Модальное окно для добавления расхода -->
-        <div v-if="showAddExpenseModal" class="modal-overlay" @click="closeAddExpenseModal">
+        <div v-if="showAddExpenseModal" class="modal-overlay active-modal" @click="closeAddExpenseModal">
             <div class="modal-content" @click.stop>
                 <h2>Добавить расход</h2>
                 <form @submit.prevent="submitAddExpense">
@@ -1322,7 +1430,7 @@ export default {
         </div>
     
         <!-- Модальное окно для редактирования расхода -->
-        <div v-if="showEditExpenseModal" class="modal-overlay" @click="closeEditExpenseModal">
+        <div v-if="showEditExpenseModal" class="modal-overlay active-modal" @click="closeEditExpenseModal">
             <div class="modal-content" @click.stop>
                 <h2>Редактировать расход</h2>
                 <form @submit.prevent="submitEditExpense">
@@ -1479,7 +1587,7 @@ export default {
                     <div v-if="editProfileSuccess" class="success">Профиль успешно обновлен! Вы будете перенаправлены на страницу входа.</div>
                     
                     <div class="modal-buttons">
-                        <button type="button" @click="closeEditProfileModal" class="cancel-btn">
+                        <button type="button" @click="cancelEditExpense" class="cancel-btn">
                             Отмена
                         </button>
                         <button type="submit" :disabled="editProfileLoading" class="submit-btn">
