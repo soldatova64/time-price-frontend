@@ -97,7 +97,8 @@ export default {
             registerSuccess: false,
             expenses: [],
             userProfile: null,
-            activeTab: 'things'
+            activeTab: 'things',
+            selectedThingName: ''
         })
 
         // Реактивные данные для модальных окон вещей
@@ -143,6 +144,7 @@ export default {
         const editExpense = reactive({
             id: null,
             thing_id: null,
+            thing_name: '',
             sum: 0,
             description: '',
             expense_date: ''
@@ -414,13 +416,13 @@ export default {
             }
         }
 
-        const openAddExpenseModal = (thingId) => {
+        const openAddExpenseModal = (thing) => {
             // Закрываем окно списка расходов при открытии добавления
             if (showExpensesListModal.value) {
                 showExpensesListModal.value = false
             }
 
-            newExpense.thing_id = thingId
+            newExpense.thing_id = thing.id
             newExpense.sum = 0
             newExpense.description = ''
 
@@ -428,6 +430,9 @@ export default {
             const today = new Date()
             const currentDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`
             newExpense.expense_date = currentDate
+
+            // Сохраняем название вещи
+            state.selectedThingName = thing.name
 
             showAddExpenseModal.value = true
             addExpenseError.value = ''
@@ -446,6 +451,8 @@ export default {
         const openEditExpenseModal = (expense) => {
             editExpense.id = expense.id
             editExpense.thing_id = expense.thing_id
+            const thing = state.items.find(item => item.id === expense.thing_id)
+            editExpense.thing_name = thing ? thing.name : 'Неизвестная вещь'
             editExpense.sum = expense.sum
             editExpense.description = expense.description
             editExpense.expense_date = formatDateForInput(expense.expense_date)
@@ -936,6 +943,7 @@ export default {
             registerUsername: ref(''),
             registerEmail: ref(''),
             registerPassword: ref(''),
+            selectedThingName: state.selectedThingName,
             showAddThingModal,
             showEditThingModal,
             addThingLoading,
@@ -1152,7 +1160,7 @@ export default {
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>№</th> <!-- Изменено с ID на № -->
                                 <th>Название</th>
                                 <th>Дата покупки</th>
                                 <th>Цена покупки</th>
@@ -1165,8 +1173,8 @@ export default {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="item in state.items" :key="item.id">
-                                <td>{{ item.id }}</td>
+                            <tr v-for="(item, index) in state.items" :key="item.id">
+                                <td>{{ index + 1 }}</td> 
                                 <td>{{ item.name }}</td>
                                 <td>{{ formatDate(item.pay_date) }}</td>
                                 <td>{{ formatCurrency(item.pay_price) }}</td>
@@ -1184,7 +1192,7 @@ export default {
                                         <button @click="openEditThingModal(item)" class="edit-btn">
                                             ✏️
                                         </button>
-                                        <button @click="openAddExpenseModal(item.id)" class="add-expense-btn">
+                                        <button @click="openAddExpenseModal(item)" class="add-expense-btn">
                                             💰
                                         </button>
                                         <button @click="deleteThing(item.id)" class="delete-btn">
@@ -1198,9 +1206,9 @@ export default {
                     
                     <div v-if="state.items.length === 0" class="empty-state">
                         <p>У вас пока нет вещей. Добавьте первую!</p>
+                    </div>
                 </div>
             </div>
-        </div>
     
         <!-- Модальное окно для добавления вещи -->
         <div v-if="showAddThingModal" class="modal-overlay" @click="closeAddThingModal">
@@ -1367,13 +1375,13 @@ export default {
                 <h2>Добавить расход</h2>
                 <form @submit.prevent="submitAddExpense">
                     <div class="form-group">
-                        <label for="expenseThingId">ID вещи:</label>
-                        <input 
-                            type="number" 
-                            id="expenseThingId" 
-                            v-model="newExpense.thing_id"
-                            disabled
-                        >
+                        <label>Вещь:</label>
+                        <div class="thing-display">
+                            <div class="thing-info">
+                                <div class="thing-name">{{ state.selectedThingName }}</div>
+                                <div class="thing-id">ID: {{ newExpense.thing_id }}</div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -1435,13 +1443,13 @@ export default {
                 <h2>Редактировать расход</h2>
                 <form @submit.prevent="submitEditExpense">
                     <div class="form-group">
-                        <label for="editExpenseThingId">ID вещи:</label>
-                        <input 
-                            type="number" 
-                            id="editExpenseThingId" 
-                            v-model="editExpense.thing_id"
-                            disabled
-                        >
+                        <label>Вещь:</label>
+                        <div class="thing-display">
+                            <div class="thing-info">
+                                <div class="thing-name">{{ editExpense.thing_name }}</div>
+                                <div class="thing-id">ID: {{ editExpense.thing_id }}</div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="form-group">
@@ -1503,7 +1511,7 @@ export default {
                     <table>
                         <thead>
                             <tr>
-                                <th>ID</th>
+                                <th>№</th> <!-- Изменено с ID на № -->
                                 <th>Сумма</th>
                                 <th>Описание</th>
                                 <th>Дата</th>
@@ -1511,8 +1519,9 @@ export default {
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="expense in state.selectedThingForExpenses.expense" :key="expense.id">
-                                <td>{{ expense.id }}</td>
+                            <!-- Добавлен index в v-for для порядкового номера -->
+                            <tr v-for="(expense, index) in state.selectedThingForExpenses.expense" :key="expense.id">
+                                <td>{{ index + 1 }}</td> <!-- Порядковый номер вместо ID -->
                                 <td>{{ formatCurrency(expense.sum) }}</td>
                                 <td>{{ expense.description }}</td>
                                 <td>{{ formatDate(expense.expense_date) }}</td>
@@ -1536,7 +1545,7 @@ export default {
                 </div>
                 
                 <div class="modal-buttons">
-                    <button @click="openAddExpenseModal(state.selectedThingForExpenses.id)" class="add-btn">
+                    <button @click="openAddExpenseModal(state.selectedThingForExpenses)" class="add-btn">
                         Добавить расход
                     </button>
                     <button type="button" @click="closeExpensesListModal" class="cancel-btn">
