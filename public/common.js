@@ -1211,7 +1211,7 @@ export default {
             </div>
     
         <!-- Модальное окно для добавления вещи -->
-        <div v-if="showAddThingModal" class="modal-overlay" @click="closeAddThingModal">
+        <div v-if="showAddThingModal" class="modal-overlay">
             <div class="modal-content" @click.stop>
                 <h2>Добавить новую вещь</h2>
                 <form @submit.prevent="submitAddThing">
@@ -1292,7 +1292,7 @@ export default {
         </div>
     
         <!-- Модальное окно для редактирования вещи -->
-        <div v-if="showEditThingModal" class="modal-overlay" @click="closeEditThingModal">
+        <div v-if="showEditThingModal" class="modal-overlay">
             <div class="modal-content" @click.stop>
                 <h2>Редактировать вещь</h2>
                 <form @submit.prevent="submitEditThing">
@@ -1370,7 +1370,7 @@ export default {
         </div>
     
         <!-- Модальное окно для добавления расхода -->
-        <div v-if="showAddExpenseModal" class="modal-overlay active-modal" @click="closeAddExpenseModal">
+        <div v-if="showAddExpenseModal" class="modal-overlay active-modal">
             <div class="modal-content" @click.stop>
                 <h2>Добавить расход</h2>
                 <form @submit.prevent="submitAddExpense">
@@ -1438,7 +1438,7 @@ export default {
         </div>
     
         <!-- Модальное окно для редактирования расхода -->
-        <div v-if="showEditExpenseModal" class="modal-overlay active-modal" @click="closeEditExpenseModal">
+        <div v-if="showEditExpenseModal" class="modal-overlay active-modal">
             <div class="modal-content" @click.stop>
                 <h2>Редактировать расход</h2>
                 <form @submit.prevent="submitEditExpense">
@@ -1503,7 +1503,7 @@ export default {
         </div>
     
         <!-- Модальное окно для просмотра расходов вещи -->
-        <div v-if="showExpensesListModal && state.selectedThingForExpenses" class="modal-overlay" @click="closeExpensesListModal">
+        <div v-if="showExpensesListModal && state.selectedThingForExpenses" class="modal-overlay">
             <div class="modal-content wide-modal" @click.stop>
                 <h2>Расходы для вещи: {{ state.selectedThingForExpenses.name }}</h2>
                 
@@ -1556,7 +1556,7 @@ export default {
         </div>
     
         <!-- Модальное окно для редактирования профиля -->
-        <div v-if="showEditProfileModal" class="modal-overlay" @click="closeEditProfileModal">
+        <div v-if="showEditProfileModal" class="modal-overlay">
             <div class="modal-content" @click.stop>
                 <h2>Редактировать профиль</h2>
                 <form @submit.prevent="submitEditProfile">
