@@ -711,7 +711,6 @@ export default {
             showEditProfileModal.value = true
             editProfileError.value = ''
             editProfileSuccess.value = false
-            editProfile.username = ''
             editProfile.password = ''
             editProfile.confirmPassword = ''
         }
@@ -739,32 +738,25 @@ export default {
             editProfileSuccess.value = false
 
             try {
-                if (!editProfile.username && !editProfile.password) {
-                    throw new Error('Укажите новое имя пользователя или пароль')
+                if (!editProfile.password) {
+                    throw new Error('Введите новый пароль')
                 }
 
-                if (editProfile.password) {
-                    if (editProfile.password.length < 8) {
-                        throw new Error('Пароль должен содержать минимум 8 символов')
-                    }
-                    if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(editProfile.password)) {
-                        throw new Error('Пароль должен содержать заглавные и строчные буквы, а также цифры')
-                    }
-                    if (editProfile.password !== editProfile.confirmPassword) {
-                        throw new Error('Пароли не совпадают')
-                    }
+                if (editProfile.password.length < 8) {
+                    throw new Error('Пароль должен содержать минимум 8 символов')
+                }
+                if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(editProfile.password)) {
+                    throw new Error('Пароль должен содержать заглавные и строчные буквы, а также цифры')
+                }
+                if (editProfile.password !== editProfile.confirmPassword) {
+                    throw new Error('Пароли не совпадают')
                 }
 
-                const requestData = {}
-                if (editProfile.username && editProfile.username.length >= 3) {
-                    requestData.username = editProfile.username
-                }
-                if (editProfile.password) {
-                    requestData.password = editProfile.password
+                const requestData = {
+                    password: editProfile.password
                 }
 
                 // Получаем user_id из токена или контекста (в реальном приложении)
-                // Здесь предполагаем, что у пользователя есть ID
                 const response = await fetch(`${API_BASE}/admin/user/${state.userProfile?.id || 1}`, {
                     method: 'PUT',
                     headers: {
@@ -786,7 +778,7 @@ export default {
                 editProfileSuccess.value = true
                 setTimeout(() => {
                     closeEditProfileModal()
-                    logout() // Перелогиниваемся после изменения данных
+                    logout() // Перелогиниваемся после изменения пароля
                 }, 1500)
 
             } catch (err) {
@@ -999,7 +991,8 @@ export default {
             showRegisterPassword,
             showLoginPassword,
             showEditProfilePassword,
-            showEditProfileConfirmPassword
+            showEditProfileConfirmPassword,
+
         }
     },
     methods: {
@@ -1558,45 +1551,58 @@ export default {
         <!-- Модальное окно для редактирования профиля -->
         <div v-if="showEditProfileModal" class="modal-overlay">
             <div class="modal-content" @click.stop>
-                <h2>Редактировать профиль</h2>
+                <h2>Изменить пароль</h2>
                 <form @submit.prevent="submitEditProfile">
-                    <div class="form-group">
-                        <label for="editUsername">Новое имя пользователя:</label>
-                        <input 
-                            type="text" 
-                            id="editUsername" 
-                            v-model="editProfile.username"
-                            minlength="3"
-                        >
-                        <div class="field-hint">Оставьте пустым, если не хотите менять</div>
-                    </div>
+                    <!-- Убрано поле для редактирования username -->
                     
                     <div class="form-group">
                         <label for="editPassword">Новый пароль:</label>
-                        <input 
-                            type="password" 
-                            id="editPassword" 
-                            v-model="editProfile.password"
-                            minlength="8"
-                        >
-                        <div class="field-hint">Оставьте пустым, если не хотите менять. Минимум 8 символов</div>
+                        <div class="password-field">
+                            <input 
+                                :type="showEditProfilePassword ? 'text' : 'password'" 
+                                id="editPassword" 
+                                v-model="editProfile.password"
+                                minlength="8"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                class="toggle-password"
+                                @click="showEditProfilePassword = !showEditProfilePassword"
+                                tabindex="-1"
+                            >
+                                {{ showEditProfilePassword ? '🙈' : '👁️' }}
+                            </button>
+                        </div>
+                        <div class="field-hint">Минимум 8 символов, должен содержать заглавные и строчные буквы, цифры</div>
                     </div>
                     
                     <div class="form-group">
                         <label for="confirmPassword">Подтвердите пароль:</label>
-                        <input 
-                            type="password" 
-                            id="confirmPassword" 
-                            v-model="editProfile.confirmPassword"
-                            minlength="8"
-                        >
+                        <div class="password-field">
+                            <input 
+                                :type="showEditProfileConfirmPassword ? 'text' : 'password'" 
+                                id="confirmPassword" 
+                                v-model="editProfile.confirmPassword"
+                                minlength="8"
+                                required
+                            >
+                            <button 
+                                type="button" 
+                                class="toggle-password"
+                                @click="showEditProfileConfirmPassword = !showEditProfileConfirmPassword"
+                                tabindex="-1"
+                            >
+                                {{ showEditProfileConfirmPassword ? '🙈' : '👁️' }}
+                            </button>
+                        </div>
                     </div>
                     
                     <div v-if="editProfileError" class="error">{{ editProfileError }}</div>
-                    <div v-if="editProfileSuccess" class="success">Профиль успешно обновлен! Вы будете перенаправлены на страницу входа.</div>
+                    <div v-if="editProfileSuccess" class="success">Пароль успешно изменен! Вы будете перенаправлены на страницу входа.</div>
                     
                     <div class="modal-buttons">
-                        <button type="button" @click="cancelEditExpense" class="cancel-btn">
+                        <button type="button" @click="closeEditProfileModal" class="cancel-btn">
                             Отмена
                         </button>
                         <button type="submit" :disabled="editProfileLoading" class="submit-btn">
@@ -1606,6 +1612,5 @@ export default {
                 </form>
             </div>
         </div>
-    </div>
     `
 }
